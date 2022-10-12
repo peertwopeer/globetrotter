@@ -1,4 +1,3 @@
-# companyPlaceholder MyGUEST
 
 ## Setup
 

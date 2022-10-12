@@ -1,0 +1,41 @@
+version: "2"
+services:
+  dev-nginx:
+    build:
+      context: ./.docker/dev/nginx
+    container_name: dev-companyPlaceholdervms-nginx
+    links:
+      - dev-node
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    depends_on:
+      - "dev-certbot"
+      - "dev-node"
+    restart: always
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+  dev-certbot:
+    image: certbot/certbot
+    container_name: dev-vms-ssl
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+  dev-node:
+    build:
+      context: ./.docker/dev/node
+    container_name: dev-companyPlaceholdervms-node
+    environment:
+      - NODE_ENV=dev
+      - PORT=3000
+    volumes:
+      - ./backend:/app
+      - ./backend/node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    command: "npm run dev"

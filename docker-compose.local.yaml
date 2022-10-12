@@ -1,0 +1,55 @@
+version: "2"
+services:
+  local-nginx:
+    build:
+      context: ./.docker/local/nginx
+    container_name: companyPlaceholder-vms-nginx
+    links:
+      - local-node
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
+  local-webpack:
+    build:
+      context: ./.docker/local/webpack
+    container_name: companyPlaceholder-vms-webpack
+    volumes:
+      - ./frontend:/app
+      - ./frontend/node_modules:/app/node_modules
+    ports:
+      - "8080:8080"
+    command: "npm run serve -- --mode local"
+  local-node:
+    build:
+      context: ./.docker/local/node
+    container_name: companyPlaceholder-vms-node
+    environment:
+      - NODE_ENV=local
+      - PORT=3000
+    volumes:
+      - ./backend:/app
+      - ./backend/node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    command: "npm run local"
+  db:
+    image: mysql:8.0.25
+    container_name: companyPlaceholder-vms-mysql-local
+    environment:
+      MYSQL_ROOT_PASSWORD: "quickstart"
+      MYSQL_DATABASE: "companyPlaceholder_vms_local"
+      MYSQL_USER: "loremine"
+      MYSQL_PASSWORD: "quickstart"
+    ports:
+      - "6033:3306"
+    volumes:
+      - ${mysqldata}:/var/lib/mysql
+  smtp:
+    image: maildev/maildev
+    container_name: companyPlaceholder-vms-smtp-local
+    command: bin/maildev -w 80 -s 25 --incoming-user 'devuser' --incoming-pass 'password'
+    ports:
+      - "1080:80"
+      - "1025:25"

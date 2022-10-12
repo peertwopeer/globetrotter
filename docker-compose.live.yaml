@@ -1,0 +1,41 @@
+version: "2"
+services:
+  live-nginx:
+    build:
+      context: ./.docker/live/nginx
+    container_name: live-companyPlaceholdervms-nginx
+    links:
+      - live-node
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    depends_on:
+      - "live-certbot"
+      - "live-node"
+    restart: always
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+  live-certbot:
+    image: certbot/certbot
+    container_name: live-vms-ssl
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+  live-node:
+    build:
+      context: ./.docker/live/node
+    container_name: live-vms-node
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - ./backend:/app
+      - ./backend/node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    command: "npm run production"
